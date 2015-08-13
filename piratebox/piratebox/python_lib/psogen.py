@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Modificated ShoutBox Library    (C)2013-2014
+# Modificated ShoutBox Library
 #   enables further modifications for the ShoutBox
 #   Run without to generate htmlfile
 #   Run the following to enter a new line from command line
@@ -12,7 +12,6 @@ import messages, broadcast
 
 datafilename = os.environ["SHOUTBOX_CHATFILE"]
 htmlfilename = os.environ["SHOUTBOX_GEN_HTMLFILE"]
-clienttimestamp =os.environ["SHOUTBOX_CLIENT_TIMESTAMP"]
 
 try:
      raw_dest =  os.environ["SHOUTBOX_BROADCAST_DESTINATIONS"]
@@ -21,6 +20,14 @@ try:
 except KeyError:
      broadcast_destination = False 
 
+
+def html_escape(text):
+    """Remove HTML chars from the given text and replace them with HTML
+entities. """
+    html_escape_table = {
+        '"': "&quot;", "'": "&apos;", ">": "&gt;",
+        "<": "&lt;"}
+    return "".join(html_escape_table.get(c,c) for c in text)
 
 #--------------
 #  Generates Shoutbox-HTML-Frame  ... 
@@ -72,8 +79,8 @@ def read_data_file():
 #--------------
 # Function for saving new Shoubox-Content & Regenerate static HTML file -- usually called by HTML-Form
 #--------------
-def process_form( name , indata , color , timestamp ):
-    content = save_input( name , indata , color , timestamp ) 
+def process_form( name , indata , color ):
+    content = save_input(  name , indata , color ) 
 
     if broadcast_destination == False:
           generate_html_into_file ( content )
@@ -82,9 +89,9 @@ def process_form( name , indata , color , timestamp ):
 #--------------
 # Acutally Saves SB-Content to datafile
 #--------------
-def save_input( name , indata , color , timestamp ):
+def save_input( name , indata , color ):
 
-    content = prepare_line ( name, indata, color , timestamp )
+    content = prepare_line ( name, indata, color  )
 
     if broadcast_destination != False:
         return writeToNetwork( content , broadcast_destination )
@@ -92,36 +99,32 @@ def save_input( name , indata , color , timestamp ):
         return writeToDisk ( content )
 
 def writeToNetwork ( content , broadcast_destination ):
-        message = messages.shoutbox_message()
-	message.set(content)
-        casting = broadcast.broadcast( )
-	casting.setDestination(broadcast_destination)
-	casting.set( message.get_message() )
-	casting.send()
-	return None
+    message = messages.shoutbox_message()
+    message.set(content)
+    casting = broadcast.broadcast( )
+    casting.setDestination(broadcast_destination)
+    casting.set( message.get_message() )
+    casting.send()
+    return None
 
 def writeToDisk ( content ):
-        old = read_data_file()
-        finalcontent = content  + old 
-        datafile = open(datafilename, 'r+')
-        datafile.write(finalcontent)
-        #datafile.truncate(0)
-        datafile.close()
-	return finalcontent 
+    old = read_data_file()
+    finalcontent = content  + old 
+    datafile = open(datafilename, 'r+')
+    datafile.write(finalcontent)
+    #datafile.truncate(0)
+    datafile.close()
+    return finalcontent 
 
-
-def prepare_line ( name, indata, color , timestamp ):
-    datapass = re.sub("<", "&lt;", indata)
-    data = re.sub(">", "&gt;", datapass)
-    if clienttimestamp == 'yes':
-        curdate = datetime.datetime.fromtimestamp(timestamp)
-    else:
-        curdate = datetime.datetime.now()
+def prepare_line (name, indata, color):
+    name = html_escape(name)
+    data = html_escape(indata)
+    color = html_escape(color)
+    curdate = datetime.datetime.now()
     # Trying to make it look like this: 
     # <div class="message">
     #     <date>00:00:00</date> <name>Nickname:</name> <data class="def">Lorem ipsum dolor sit amet</data>
     # </div>
-    #
     content = "<div class='message'><date>" + curdate.strftime("%H:%M:%S") + "</date> <name>" + name + ":</name> <data class='" + color + "'>" + data + "</data></div>\n" 
     return content
 
@@ -137,6 +140,3 @@ if __name__ == "__main__":
   
   generate_html_from_file ()
   print "Generated HTML-Shoutbox File."
-
-
-
